@@ -3,3 +3,6 @@ node_modules/
 .DS_Store
 frontend/dist/*
 *.patch
+*.mp4
+*.mov
+*.pptx
