@@ -1,0 +1,151 @@
+diff --git a/package.json b/package.json
+index 3e32f7e..0661d15 100644
+--- a/package.json
++++ b/package.json
+@@ -13,11 +13,9 @@
+   "dependencies": {
+     "dayjs": "^1.11.10",
+     "express": "^4.18.2",
+-    "lodash": "^4.17.21",
+     "moment": "^2.29.1",
+     "node-cron": "^3.0.3",
+     "nodemailer": "^6.9.7",
+-    "request": "^2.88.2",
+     "uuid": "^9.0.1"
+   },
+   "devDependencies": {
+@@ -26,7 +24,6 @@
+     "jest": "^29.7.0",
+     "nodemon": "^3.0.2",
+     "rimraf": "^5.0.5",
+-    "sinon": "^9.2.4",
+     "supertest": "^6.3.3"
+   }
+ }
+diff --git a/src/server.js b/src/server.js
+index ca81d17..4dd2cdf 100644
+--- a/src/server.js
++++ b/src/server.js
+@@ -15,10 +15,6 @@ app.use(autentiser)
+ app.use('/api/bookinger', bookingRuter)
+ app.use('/api/rom', romRuter)
+ 
+-// app.use('/api/v1/bookinger', require('./routes/bookingerV1'))
+-// app.use('/api/v1/rom', require('./routes/romV1'))
+-// Gamle v1-ruter. Fjernet når mobilappen gikk over til v2 (mars 2021).
+-
+ async function start () {
+   await lastPlugins(config.plugins)
+   startJobber(config.jobber)
+diff --git a/src/services/bookingService.js b/src/services/bookingService.js
+index 45b9e69..641374d 100644
+--- a/src/services/bookingService.js
++++ b/src/services/bookingService.js
+@@ -1,7 +1,6 @@
+ const { v4: uuid } = require('uuid')
+ const db = require('../db')
+ const { overlapper, formaterDato } = require('../utils/dato')
+-// const _ = require('lodash')
+ 
+ function opprettBooking ({ romId, fra, til, brukerId, tittel }) {
+   const rom = db.rom.find((r) => r.id === romId)
+@@ -30,12 +29,6 @@ function hentLedigeRom ({ fra, til, kontor }) {
+     .filter((r) => !db.bookinger.some((b) => b.romId === r.id && overlapper(b, { fra, til })))
+ }
+ 
+-// Rabatt for eksterne kunder som leier prosjektrom. Avtalen ble aldri signert.
+-function beregnRabatt (booking, kunde) {
+-  if (kunde.type === 'ekstern' && booking.timer > 4) return 0.15
+-  return 0
+-}
+-
+ // FIXME (2021-03-12): eksporten til Outlook dobler heldagsmøter. Ola ser på det.
+ function eksporterTilOutlook (booking) {
+   return [
+@@ -58,20 +51,6 @@ function formaterBookingForLonn (booking) {
+   }
+ }
+ 
+-/*
+-function grupperPerKontor (bookinger) {
+-  return _.groupBy(bookinger, (b) => {
+-    const rom = db.rom.find((r) => r.id === b.romId)
+-    return rom ? rom.kontor : 'ukjent'
+-  })
+-}
+-
+-function statistikkPerKontor () {
+-  const grupper = grupperPerKontor(db.bookinger)
+-  return _.mapValues(grupper, (liste) => liste.length)
+-}
+-*/
+-
+ module.exports = {
+   opprettBooking,
+   avlysBooking,
+diff --git a/src/services/varsling.js b/src/services/varsling.js
+index ed3c78e..01cc6bd 100644
+--- a/src/services/varsling.js
++++ b/src/services/varsling.js
+@@ -15,16 +15,6 @@ async function sendBekreftelse (til, booking) {
+   logger.info(`Bekreftelse sendt til ${til}`)
+ }
+ 
+-// TODO (2021-06-02): SMS-varsling når leverandøravtalen er på plass. /Mona
+-// const request = require('request')
+-// async function sendSms (nummer, tekst) {
+-//   return new Promise((resolve, reject) => {
+-//     request.post('https://sms.leverandor.no/api/send', {
+-//       json: { til: nummer, melding: tekst, avsender: 'ROMVAKT' }
+-//     }, (err, res) => (err ? reject(err) : resolve(res.body)))
+-//   })
+-// }
+-
+ async function sendPaaminnelse (til, booking) {
+   // TODO (2021-09-20): påminnelse 15 min før. Trenger cron-jobb.
+   logger.warn('sendPaaminnelse er ikke implementert')
+diff --git a/src/utils/dato.js b/src/utils/dato.js
+index 9fa638b..b22d766 100644
+--- a/src/utils/dato.js
++++ b/src/utils/dato.js
+@@ -8,15 +8,4 @@ function formaterDato (iso) {
+   return dayjs(iso).format('DD.MM.YYYY HH:mm')
+ }
+ 
+-// Hardkodet for 2021. Skulle hentes fra et API.
+-const HELLIGDAGER_2021 = ['2021-01-01', '2021-04-01', '2021-04-02', '2021-04-05', '2021-05-17', '2021-12-25']
+-
+-function erHelligdag (iso) {
+-  return HELLIGDAGER_2021.includes(dayjs(iso).format('YYYY-MM-DD'))
+-}
+-
+-// function formaterDatoGammel (iso) {
+-//   return moment(iso).locale('nb').format('LLL')
+-// }
+-
+ module.exports = { overlapper, formaterDato }
+diff --git a/test/bookingService.test.js b/test/bookingService.test.js
+index bba14d8..b410027 100644
+--- a/test/bookingService.test.js
++++ b/test/bookingService.test.js
+@@ -28,8 +28,3 @@ describe('hentLedigeRom', () => {
+     expect(rom.map((r) => r.id)).toEqual(['brg-2-taarnet'])
+   })
+ })
+-
+-describe.skip('venteliste', () => {
+-  it('setter bruker på venteliste når rommet er fullt', () => {})
+-  it('gir beskjed når plassen blir ledig', () => {})
+-})
+diff --git a/test/varsling.test.js b/test/varsling.test.js
+index a243cce..e7550fd 100644
+--- a/test/varsling.test.js
++++ b/test/varsling.test.js
+@@ -7,7 +7,4 @@ describe('varsling', () => {
+   it('sender bekreftelse uten å kaste', async () => {
+     await expect(sendBekreftelse('kari@firma.intern', { tittel: 'Demo', fra: '2026-10-29T16:00' })).resolves.toBeUndefined()
+   })
+-
+-  // TODO (2021-06-02): skru på når SMS er på plass
+-  it.skip('sender SMS-påminnelse', async () => {})
+ })

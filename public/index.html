@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="nb">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kodekirkegården</title>
+<style>
+  :root {
+    --bg: #14111a; --panel: #1d1926; --kant: #322b42; --tekst: #e8e4f0; --dempet: #8d84a3;
+    --oransje: #ff8a2b; --gronn: #5fd38d; --rod: #ff6b6b; --lilla: #a78bfa;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--tekst); font: 15px/1.55 system-ui, sans-serif; }
+  header { padding: 20px 28px 8px; }
+  h1 { margin: 0; font-size: 26px; }
+  h1 small { color: var(--dempet); font-weight: 400; font-size: 14px; margin-left: 10px; }
+  form { display: flex; gap: 10px; padding: 12px 28px 16px; }
+  input[type=text] { flex: 1; background: var(--panel); color: var(--tekst); border: 1px solid var(--kant); border-radius: 8px; padding: 10px 12px; font: inherit; }
+  button { background: var(--oransje); color: #1a1208; border: 0; border-radius: 8px; padding: 10px 18px; font: inherit; font-weight: 600; cursor: pointer; }
+  button:disabled { opacity: .5; cursor: wait; }
+  main { display: grid; grid-template-columns: minmax(280px, 380px) minmax(0, 1fr); gap: 16px; padding: 0 28px 28px; height: calc(100vh - 140px); min-height: 420px; }
+  section { min-width: 0; background: var(--panel); border: 1px solid var(--kant); border-radius: 12px; display: flex; flex-direction: column; min-height: 0; }
+  section > h2 { margin: 0; padding: 12px 16px; font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: var(--dempet); border-bottom: 1px solid var(--kant); display: flex; justify-content: space-between; align-items: center; }
+  .innhold { overflow: auto; padding: 14px 16px; flex: 1; }
+  #status { color: var(--oransje); text-transform: none; letter-spacing: 0; }
+  .steg { border-left: 3px solid var(--kant); padding: 2px 0 2px 10px; margin-bottom: 10px; font-size: 13px; }
+  .steg.kall { border-color: var(--oransje); }
+  .steg.ok { border-color: var(--gronn); }
+  .steg.feil { border-color: var(--rod); }
+  .steg.tanke { border-color: var(--lilla); color: var(--dempet); white-space: pre-wrap; }
+  .steg code { color: var(--oransje); }
+  .steg details summary { cursor: pointer; color: var(--gronn); }
+  .steg.feil details summary { color: var(--rod); }
+  .steg pre { white-space: pre-wrap; word-break: break-word; margin: 6px 0 0; color: var(--dempet); font-size: 12px; }
+  .args { color: var(--dempet); font-size: 12px; word-break: break-all; }
+  nav { display: flex; gap: 4px; }
+  nav button { background: transparent; color: var(--dempet); padding: 4px 12px; border-radius: 6px; font-size: 13px; text-transform: none; letter-spacing: 0; }
+  nav button.aktiv { background: var(--kant); color: var(--tekst); }
+  .tom { color: var(--dempet); text-align: center; margin-top: 60px; }
+  /* rapport */
+  #rapport h1, #rapport h2, #rapport h3 { margin: 22px 0 8px; }
+  #rapport h2 { color: var(--oransje); font-size: 19px; border-bottom: 1px solid var(--kant); padding-bottom: 4px; }
+  #rapport h3 { font-size: 16px; }
+  #rapport table { border-collapse: collapse; width: 100%; margin: 10px 0; font-size: 14px; }
+  #rapport th, #rapport td { border: 1px solid var(--kant); padding: 6px 10px; text-align: left; vertical-align: top; }
+  #rapport th { background: var(--bg); color: var(--dempet); }
+  #rapport code { background: var(--bg); padding: 1px 5px; border-radius: 4px; font-size: 13px; }
+  #rapport ul, #rapport ol { padding-left: 22px; }
+  #rapport li { margin: 3px 0; }
+  .merke { display: inline-block; padding: 0 8px; border-radius: 99px; font-size: 12px; font-weight: 600; }
+  .hoy { background: #1f4d34; color: var(--gronn); }
+  .middels { background: #54431a; color: #ffd166; }
+  .lav { background: #552626; color: var(--rod); }
+  /* patch */
+  #patch { font: 12.5px/1.5 ui-monospace, Menlo, monospace; white-space: pre; }
+  #patch .p { color: var(--gronn); background: #14261d; display: block; }
+  #patch .m { color: var(--rod); background: #2a1717; display: block; }
+  #patch .h { color: var(--lilla); display: block; }
+  #patch .f { color: var(--oransje); display: block; font-weight: 700; margin-top: 8px; }
+  #patch span { display: block; color: var(--dempet); }
+  .apply { margin: 0 0 10px; color: var(--dempet); font: 13px system-ui; white-space: normal; }
+  .apply code { color: var(--oransje); }
+  @media (max-width: 800px) { main { grid-template-columns: 1fr; height: auto; } section { min-height: 360px; } }
+</style>
+</head>
+<body>
+<header><h1>🪦 Kodekirkegården <small>agenten graver i hjemsokt-repo</small></h1></header>
+<form id="skjema">
+  <input type="text" id="oppgave" placeholder="Hva skal graveren lete etter?" autocomplete="off">
+  <button id="start" type="submit">⚰️ Start graving</button>
+</form>
+<main>
+  <section>
+    <h2>Graverens logg <span id="status"></span></h2>
+    <div class="innhold" id="logg"><div class="tom">Ingen graving ennå.</div></div>
+  </section>
+  <section>
+    <h2>
+      <nav>
+        <button type="button" id="fane-rapport" class="aktiv">Rapport</button>
+        <button type="button" id="fane-patch">Opprydnings-patch</button>
+      </nav>
+    </h2>
+    <div class="innhold" id="rapport"><div class="tom">Rapporten dukker opp her når agenten er ferdig.</div></div>
+    <div class="innhold" id="patch" hidden></div>
+  </section>
+</main>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const esc = (t) => t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+// Minimal markdown: nok til rapporten (overskrifter, tabeller, lister, fet, kode).
+function inline(t) {
+  return esc(t)
+    .replace(/`([^`]+)`/g, '<code>$1</code>')
+    .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+    .replace(/\b(høy|middels|lav)\b(?= sikkerhet|\)|$|\/)/gi, (m) => `<span class="merke ${m.toLowerCase() === 'høy' ? 'hoy' : m.toLowerCase()}">${m}</span>`);
+}
+function markdown(src) {
+  const linjer = src.split('\n');
+  let ut = '', liste = null, i = 0;
+  const lukk = () => { if (liste) { ut += `</${liste}>`; liste = null; } };
+  while (i < linjer.length) {
+    const l = linjer[i];
+    if (/^\s*\|.*\|\s*$/.test(l) && /^\s*\|[\s:|-]+\|\s*$/.test(linjer[i + 1] ?? '')) {
+      lukk();
+      const celler = (r) => r.trim().replace(/^\||\|$/g, '').split('|').map((c) => c.trim());
+      ut += '<table><thead><tr>' + celler(l).map((c) => `<th>${inline(c)}</th>`).join('') + '</tr></thead><tbody>';
+      i += 2;
+      while (i < linjer.length && /^\s*\|.*\|\s*$/.test(linjer[i])) {
+        ut += '<tr>' + celler(linjer[i]).map((c) => `<td>${inline(c)}</td>`).join('') + '</tr>';
+        i++;
+      }
+      ut += '</tbody></table>';
+      continue;
+    }
+    let m;
+    if ((m = l.match(/^(#{1,4})\s+(.*)/))) { lukk(); ut += `<h${m[1].length}>${inline(m[2])}</h${m[1].length}>`; }
+    else if ((m = l.match(/^\s*[-*]\s+(.*)/))) { if (liste !== 'ul') { lukk(); ut += '<ul>'; liste = 'ul'; } ut += `<li>${inline(m[1])}</li>`; }
+    else if ((m = l.match(/^\s*\d+\.\s+(.*)/))) { if (liste !== 'ol') { lukk(); ut += '<ol>'; liste = 'ol'; } ut += `<li>${inline(m[1])}</li>`; }
+    else if (/^\s*---+\s*$/.test(l)) { lukk(); ut += '<hr>'; }
+    else if (!l.trim()) lukk();
+    else { lukk(); ut += `<p>${inline(l)}</p>`; }
+    i++;
+  }
+  lukk();
+  return ut;
+}
+
+function visPatch(tekst) {
+  const html = tekst.split('\n').map((l) => {
+    const k = l.startsWith('diff --git') ? 'f' : /^(\+\+\+|---|index|new file|deleted file)/.test(l) ? 'h'
+      : l.startsWith('@@') ? 'h' : l.startsWith('+') ? 'p' : l.startsWith('-') ? 'm' : '';
+    return k ? `<i class="${k}">${esc(l)}</i>` : `<span>${esc(l)}</span>`;
+  }).join('');
+  $('patch').innerHTML = '<div class="apply">Bruk den fra <code>hjemsokt-repo</code>: <code>git apply -p1 ../data/opprydding.patch</code></div>' + html;
+}
+
+function fane(navn) {
+  $('rapport').hidden = navn !== 'rapport';
+  $('patch').hidden = navn !== 'patch';
+  $('fane-rapport').classList.toggle('aktiv', navn === 'rapport');
+  $('fane-patch').classList.toggle('aktiv', navn === 'patch');
+}
+$('fane-rapport').onclick = () => fane('rapport');
+$('fane-patch').onclick = () => fane('patch');
+
+function leggTilSteg(klasse, html) {
+  const logg = $('logg');
+  if (logg.querySelector('.tom')) logg.innerHTML = '';
+  const d = document.createElement('div');
+  d.className = 'steg ' + klasse;
+  d.innerHTML = html;
+  logg.appendChild(d);
+  logg.scrollTop = logg.scrollHeight;
+}
+
+let kilde = null;
+$('skjema').addEventListener('submit', (e) => {
+  e.preventDefault();
+  if (kilde) kilde.close();
+  $('logg').innerHTML = '<div class="tom">Graveren våkner …</div>';
+  $('rapport').innerHTML = '<div class="tom">Graver …</div>';
+  $('patch').innerHTML = '';
+  fane('rapport');
+  $('start').disabled = true;
+  $('status').textContent = 'graver …';
+  let antall = 0, rapport = '';
+
+  kilde = new EventSource('/api/kjor?oppgave=' + encodeURIComponent($('oppgave').value));
+  kilde.onmessage = async (ev) => {
+    const h = JSON.parse(ev.data);
+    if (h.type === 'kall') {
+      antall++;
+      $('status').textContent = `${antall} verktøykall`;
+      leggTilSteg('kall', `→ <code>${esc(h.navn)}</code> <span class="args">${esc(JSON.stringify(h.input).slice(0, 300))}</span>`);
+    } else if (h.type === 'resultat') {
+      leggTilSteg(h.feil ? 'feil' : 'ok', `<details><summary>${h.feil ? '✖' : '✓'} ${h.tegn} tegn tilbake</summary><pre>${esc(h.forhandsvisning)}${h.tegn > 600 ? '\n…' : ''}</pre></details>`);
+    } else if (h.type === 'tekst') {
+      if (h.sluttsvar) { rapport += h.tekst + '\n'; $('rapport').innerHTML = markdown(rapport); }
+      else leggTilSteg('tanke', esc(h.tekst));
+    } else if (h.type === 'stoppet') {
+      leggTilSteg('feil', '✖ ' + esc(h.melding));
+    } else if (h.type === 'slutt') {
+      kilde.close(); // ellers prøver EventSource å koble til igjen og starter en ny kjøring
+      kilde = null;
+      $('start').disabled = false;
+      $('status').textContent = `ferdig, ${antall} verktøykall`;
+      if (!rapport) $('rapport').innerHTML = '<div class="tom">Agenten ga ikke noe sluttsvar.</div>';
+      if (h.patch) {
+        const r = await fetch('/api/patch');
+        if (r.ok) visPatch(await r.text());
+      }
+    }
+  };
+  kilde.onerror = () => {
+    if (!kilde) return;
+    kilde.close(); kilde = null;
+    $('start').disabled = false;
+    $('status').textContent = 'mistet forbindelsen';
+  };
+});
+
+fetch('/api/info').then((r) => r.json()).then((i) => {
+  $('oppgave').value = i.eksempelOppgave;
+  if (i.patch) fetch('/api/patch').then((r) => r.text()).then(visPatch);
+});
+</script>
+</body>
+</html>
