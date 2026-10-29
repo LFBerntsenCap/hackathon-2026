@@ -31,6 +31,9 @@
   nav button { background: transparent; color: var(--dempet); padding: 4px 12px; border-radius: 6px; font-size: 13px; text-transform: none; letter-spacing: 0; }
   nav button.aktiv { background: var(--kant); color: var(--tekst); }
   .tom { color: var(--dempet); text-align: center; margin-top: 60px; }
+  .venter .spade { font-size: 48px; display: inline-block; animation: grav 1.4s ease-in-out infinite; }
+  .venter .ventetekst { margin-top: 10px; font-style: italic; color: var(--lilla); }
+  @keyframes grav { 0%, 100% { transform: translateY(0) rotate(-6deg); } 50% { transform: translateY(8px) rotate(6deg); } }
   /* rapport */
   .rapport h1, .rapport h2, .rapport h3 { margin: 22px 0 8px; }
   .rapport h2 { color: var(--oransje); font-size: 19px; border-bottom: 1px solid var(--kant); padding-bottom: 4px; }
