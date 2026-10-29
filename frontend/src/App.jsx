@@ -38,7 +38,7 @@ export default function App() {
             </nav>
           </h2>
           <div className="innhold">
-            {fane === 'rapport' ? <Rapport rapport={rapport} status={status} /> : <PatchVisning patch={patch} />}
+            {fane === 'rapport' ? <Rapport rapport={rapport} status={status} steg={steg} /> : <PatchVisning patch={patch} />}
           </div>
         </section>
       </main>

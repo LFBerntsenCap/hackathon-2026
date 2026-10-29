@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { graverStatus, useVentetekst } from './gravertekst.js';
 
 function Steg({ h }) {
   if (h.type === 'kall') {
@@ -29,14 +30,15 @@ export default function Logg({ steg, status }) {
     bunn.current?.scrollIntoView({ block: 'end' });
   }, [steg.length]);
 
+  const ventetekst = useVentetekst(status === 'graver' && steg.length === 0);
   const antall = steg.filter((s) => s.type === 'kall').length;
-  const tekst = { klar: '', graver: `graver … ${antall} verktøykall`, ferdig: `ferdig, ${antall} verktøykall`, feil: 'mistet forbindelsen' }[status];
+  const tekst = { klar: '', graver: `${graverStatus(steg)} … ${antall} verktøykall`, ferdig: `ferdig, ${antall} verktøykall`, feil: 'mistet forbindelsen' }[status];
 
   return (
     <section>
       <h2>Graverens logg <span className="status">{tekst}</span></h2>
       <div className="innhold">
-        {steg.length === 0 && <div className="tom">{status === 'graver' ? 'Graveren våkner …' : 'Ingen graving ennå.'}</div>}
+        {steg.length === 0 && <div className="tom">{status === 'graver' ? ventetekst : 'Ingen graving ennå.'}</div>}
         {steg.map((h, i) => <Steg key={i} h={h} />)}
         <div ref={bunn} />
       </div>

@@ -1,5 +1,6 @@
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { graverStatus, useVentetekst } from './gravertekst.js';
 
 const NIVA = { høy: 'hoy', middels: 'middels', lav: 'lav' };
 
@@ -17,9 +18,17 @@ function Celle({ children, node, ...rest }) {
   return <td {...rest}>{klasse ? <span className={'merke ' + klasse}>{tekst}</span> : children}</td>;
 }
 
-export default function Rapport({ rapport, status }) {
+export default function Rapport({ rapport, status, steg = [] }) {
+  const ventetekst = useVentetekst(status === 'graver' && !rapport);
   if (!rapport) {
-    return <div className="tom">{status === 'graver' ? 'Graver …' : 'Rapporten dukker opp her når agenten er ferdig.'}</div>;
+    if (status !== 'graver') return <div className="tom">Rapporten dukker opp her når agenten er ferdig.</div>;
+    return (
+      <div className="tom venter">
+        <div className="spade">⚰️</div>
+        <div>Graveren {graverStatus(steg)} …</div>
+        <div className="ventetekst">{ventetekst}</div>
+      </div>
+    );
   }
   return (
     <div className="rapport">
