@@ -7,13 +7,15 @@ const MODELL = process.env.MODELL ?? 'claude-sonnet-5-5';
 // Stopper en agent som går i ring før den brenner opp kostnadstaket.
 const MAX_ITERASJONER = Number(process.env.MAX_ITERASJONER ?? 10);
 
-const klient = new Anthropic();
-
 const grå = (t) => `\x1b[90m${t}\x1b[0m`;
 const oransje = (t) => `\x1b[38;5;208m${t}\x1b[0m`;
 const grønn = (t) => `\x1b[32m${t}\x1b[0m`;
 
-export async function kjørAgent({ system, oppgave, verktøy }) {
+// `ved` er valgfri: får {type, ...} for hvert steg, slik at et grensesnitt kan vise løkka live.
+export async function kjørAgent({ system, oppgave, verktøy, ved = () => {}, signal }) {
+  // Lages her og ikke på toppnivå, slik at .env er lastet før klienten leser nøkkelen.
+  const klient = new Anthropic();
+
   // Bare verktøy med en kjør-funksjon sendes til modellen. Stubbene i
   // verktoy.js blir med av seg selv når dere implementerer dem.
   const aktive = verktøy.filter((v) => v.kjør);
@@ -22,6 +24,8 @@ export async function kjørAgent({ system, oppgave, verktøy }) {
   const messages = [{ role: 'user', content: oppgave }];
 
   for (let i = 1; i <= MAX_ITERASJONER; i++) {
+    // Avbrutt av oppringeren (f.eks. nettleseren koblet fra): ikke brenn flere API-kall.
+    if (signal?.aborted) return;
     const svar = await klient.messages.create({
       model: MODELL,
       max_tokens: 16000,
@@ -36,16 +40,22 @@ export async function kjørAgent({ system, oppgave, verktøy }) {
     for (const blokk of svar.content) {
       if (blokk.type === 'text' && blokk.text.trim()) {
         console.log(svar.stop_reason === 'tool_use' ? grå(blokk.text) : blokk.text);
+        ved({ type: 'tekst', tekst: blokk.text, sluttsvar: svar.stop_reason !== 'tool_use' });
       }
     }
 
-    if (svar.stop_reason === 'end_turn') return svar;
+    if (svar.stop_reason === 'end_turn') {
+      ved({ type: 'ferdig' });
+      return svar;
+    }
     if (svar.stop_reason === 'refusal') {
       console.log(oransje(`\n✖ Modellen avslo (${svar.stop_details?.category ?? 'ukjent grunn'}).`));
+      ved({ type: 'stoppet', melding: 'Modellen avslo oppgaven.' });
       return svar;
     }
     if (svar.stop_reason === 'max_tokens') {
       console.log(oransje('\n✖ Svaret ble kuttet (max_tokens).'));
+      ved({ type: 'stoppet', melding: 'Svaret ble kuttet (max_tokens).' });
       return svar;
     }
 
@@ -55,12 +65,16 @@ export async function kjørAgent({ system, oppgave, verktøy }) {
     const resultater = [];
     for (const k of kall) {
       console.log(oransje(`→ ${k.name}`) + grå(` ${JSON.stringify(k.input)}`));
-      resultater.push(await kjørVerktøy(etterNavn, k));
+      ved({ type: 'kall', navn: k.name, input: k.input, runde: i });
+      const r = await kjørVerktøy(etterNavn, k);
+      resultater.push(r);
+      ved({ type: 'resultat', navn: k.name, tegn: r.content.length, feil: Boolean(r.is_error), forhandsvisning: r.content.slice(0, 600) });
     }
     messages.push({ role: 'user', content: resultater });
   }
 
   console.log(oransje(`\n✖ Stoppet etter ${MAX_ITERASJONER} runder (MAX_ITERASJONER).`));
+  ved({ type: 'stoppet', melding: `Stoppet etter ${MAX_ITERASJONER} runder (MAX_ITERASJONER).` });
 }
 
 async function kjørVerktøy(etterNavn, kall) {
