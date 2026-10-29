@@ -54,4 +54,5 @@
   .patch span { display: block; color: var(--dempet); }
   .apply { margin: 0 0 10px; color: var(--dempet); font: 13px system-ui; white-space: normal; }
   .apply code { color: var(--oransje); }
+  .last-ned { display: inline-block; margin: 0 0 12px; background: var(--oransje); color: #1a1208; border-radius: 8px; padding: 8px 14px; font: 600 13px system-ui; text-decoration: none; }
   @media (max-width: 800px) { main { grid-template-columns: 1fr; height: auto; } section { min-height: 360px; } }
